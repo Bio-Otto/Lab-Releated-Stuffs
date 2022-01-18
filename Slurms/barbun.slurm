@@ -1,10 +1,9 @@
 #!/bin/bash
-#SBATCH -p barbun-cuda
+#SBATCH -p barbun
 #SBATCH -A hozdemir
 #SBATCH -J 3o4l_TCRpMHC_250ns
 #SBATCH -N 2
 #SBATCH -n 40
-#SBATCH --gres=gpu:2
 #SBATCH --time=15-00:00:00
 #SBATCH --mail-user=ozdemir.genetik@gmail.com
 #SBATCH --mail-type=ALL
@@ -35,5 +34,9 @@ echo "NUMBER OF CORES $SLURM_NTASKS"
 
 GROMACS_DIR=/truba/sw/centos7.9/app/gromacs/2021.2-impi-mkl-oneapi-2021.2-GOLD/bin
 
-mpirun $GROMACS_DIR/gmx_mpi mdrun $ntmpi -ntomp $ntomp -v -s 3o4l_TCRpMHC_250ns
+# Run A Simulation
+#mpirun $GROMACS_DIR/gmx_mpi mdrun $ntmpi -ntomp $ntomp -v -s 3o4l_TCRpMHC_250ns
+
+# Continue A Simulation
+mpirun $GROMACS_DIR/gmx_mpi mdrun $ntmpi -ntomp $ntomp -v -s 3o4l_TCRpMHC_250ns.tpr -cpi state.cpt -deffnm 3o4l_TCRpMHC_250ns
 exit
