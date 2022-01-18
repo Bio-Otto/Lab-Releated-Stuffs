@@ -22,18 +22,18 @@ srun -A hozdemir -p barbun-cuda -N 1 -n 40 --gres=gpu:1 --time=15-00:00:00  --jo
 
 
 module purge
-source /truba/sw/centos7.9/comp/intel/PS2020-update4/bin/compilervars.sh intel64
-module load centos7.9/comp/cmake/3.18.0
-module load centos7.9/comp/gcc/7
-module load centos7.9/lib/openmpi/4.1.1-gcc-7
-module load centos7.9/lib/cuda/11.0
+#source /truba/sw/centos7.9/comp/intel/PS2020-update4/bin/compilervars.sh intel64
+module load centos7.3/comp/cmake/3.18.0
+module load centos7.3/comp/gcc/7
+module load centos7.3/lib/openmpi/4.0.1-gcc-7.0.1
+module load centos7.3/lib/cuda/10.1
 
 export CC=mpicc
 export CXX=mpic++
 
 
-cmake .. -DCMAKE_C_COMPILER=mpicc -DCMAKE_CXX_COMPILER=mpic++ -DGMX_MPI=on -DGMX_BUILD_OWN_FFTW=ON -DGMX_SIMD=AUTO -DGMX_GPU=CUDA -DCUDA_TOOLKIT_ROOT_DIR=/truba/sw/centos7.9/lib/cuda/11.0 -DCMAKE_INSTALL_PREFIX=/truba/home/hozdemir/gmx-derleme/gromacs-2021.3/bin
+cmake .. -DCMAKE_C_COMPILER=mpicc -DCMAKE_CXX_COMPILER=mpic++ -DGMX_MPI=on -DGMX_BUILD_OWN_FFTW=ON -DGMX_SIMD=AVX_512 -DGMX_GPU=CUDA -DCUDA_TOOLKIT_ROOT_DIR=/truba/sw/centos7.3/lib/cuda/10.1 -DCMAKE_INSTALL_PREFIX=/truba/home/hozdemir/gmx-derleme/gromacs-2021.3/bin
 
-make
-make check
+make -j4 all
+# make check
 make install
