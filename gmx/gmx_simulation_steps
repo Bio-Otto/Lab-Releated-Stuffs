@@ -1,0 +1,97 @@
+nvidia driver: 470.86
+cuda:11.4
+
+
+
+GROMACS TUTORIAL:
+
+
+#select force-field 15
+
+/usr/local/gromacs/bin/gmx pdb2gmx -f model004.pdb -o model004.gro -water spce
+
+
+#set the box
+
+/usr/local/gromacs/bin/gmx editconf -f model004.gro -o model004_box.gro -c -d 1.0 -bt cubic
+
+
+#solvate
+
+/usr/local/gromacs/bin/gmx solvate -cp model004_box.gro -cs spc216.gro -o model004_solv.gro -p topol.top
+
+
+#ionize
+
+/usr/local/gromacs/bin/gmx grompp -f ions.mdp -c model004_solv.gro -p topol.top -o ions.tpr
+
+
+#select 13 for ions to replace SOL
+
+/usr/local/gromacs/bin/gmx genion -s ions.tpr -o model004_ionized.gro -p topol.top -pname NA -neutral
+
+
+#energy minimization
+
+/usr/local/gromacs/bin/gmx grompp -f minim.mdp -c model004_ionized.gro -p topol.top -o em.tpr
+
+
+/usr/local/gromacs/bin/gmx mdrun -v -deffnm em
+
+
+#stabilize the temperature 
+
+/usr/local/gromacs/bin/gmx grompp -f nvt.mdp -c em.gro -p topol.top -o nvt.tpr -r em.gro
+
+
+/usr/local/gromacs/bin/gmx mdrun -v -deffnm nvt
+
+
+#stabilize the pressure
+
+
+/usr/local/gromacs/bin/gmx grompp -f npt.mdp -c nvt.gro -t nvt.cpt -p topol.top -o npt.tpr -r nvt.gro
+
+
+/usr/local/gromacs/bin/gmx mdrun -v -deffnm npt
+
+
+#mdrun
+
+
+usr/local/gromacs/bin/gmx grompp -f md.mdp -c npt.gro -t npt.cpt -p topol.top -o md_o_1.tpr
+
+
+/usr/local/gromacs/bin/gmx mdrun -v -deffnm md_0_1
+
+
+CONTINUE A SIMULATION:
+
+
+gmx mdrun -s model_md1.tpr -cpi model_md1.cpt -deffnm model_md1
+
+
+MDRUN UZATMA:
+
+
+gmx convert-tpr -s model_md_20_50ns.tpr -until 100000 -o model_md_50_100ns.tpr
+
+
+gmx mdrun -s model_md_50_100ns.tpr -cpi model_md_20_50ns.cpt -deffnm model_md_50_100ns
+
+
+REMOVE WATER:
+
+
+trjconv -s input_md.tpr -f input_md.xtc -p protein.xtc
+
+tbpconv -s input_md.tpr -o protein.tpr
+
+
+UNWRAP:
+
+
+make_ndx -f solvated.gro -o solvated.ndx
+
+
+gmx trjconv -f md.xtc -o md_unwrap.xtc -pbc nojump -center -n solvated.ndx

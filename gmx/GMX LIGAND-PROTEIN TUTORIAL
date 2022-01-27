@@ -1,0 +1,116 @@
+GMX LIGAND-protein
+
+
+!!!! Change .pdb file name in script according to your protein in pdb2gmx line!!!
+
+#script makes till solvated.gro file and .mdp files 🖥️🖱️
+
+python3 combineGro_prot_lig.py
+
+#IONIZE 🌨️
+
+gmx grompp -f ions.mdp -c complex_solvated.gro -p topol_PLIG.top -o ions.tpr -maxwarn 10
+
+gmx genion -s ions.tpr -o 1kfl_d146n_dimer_ionized.gro -p topol_PLIG.top -neutral 
+
+--> select 15 for ions to replace SOL
+
+#ENERGY MINIMIZATION 📉️
+
+gmx grompp -f em.mdp -c 1kfl_d146n_dimer_ionized.gro -p topol_PLIG.top -o em.tpr 
+
+gmx mdrun -v -deffnm em 
+
+#RESTRAINING THE LIGAND ⛓️
+
+gmx make_ndx -f MN.gro -o index_mn.ndx 
+
+> 0 & ! a H*
+> q
+
+gmx genrestr -f MN.gro -n index_mn.ndx -o posre_mn.itp -fc 1000 1000 1000
+
+select 3 for ""system""
+--> Add following lines to topol_PLIG.top file after " ; Include Position restraint file" part:
+
+; Ligand position restraints
+#ifdef POSRES
+#include "posre_mn.itp"
+#endif
+
+#THERMOSTAT (NVT) 🗃️
+
+gmx make_ndx -f em.gro -o index.ndx 
+
+> 1 | 13
+> q
+
+--> open nvt.mdp file and replace tc-grps = with Protein_MN Water_and_ions  and save&exit 
+
+gmx grompp -f nvt.mdp -c em.gro -r em.gro -p topol_PLIG.top -n index.ndx -o nvt.tpr 
+
+gmx mdrun -deffnm nvt 
+
+#NPT🔨️
+
+gmx grompp -f npt.mdp -c nvt.gro -t nvt.cpt -r nvt.gro -p topol_PLIG.top -n index.ndx -o npt.tpr
+
+
+gmx mdrun -deffnm npt
+
+#MD RUN 💃🏼️💃🏼️🤸‍♀️️🤼‍♀️️🎆️🎉️
+
+gmx grompp -f md.mdp -c npt.gro -t npt.cpt -p topol_PLIG.top -n index.ndx -o md_1kfl_d146n_dimer.tpr
+
+nohup gmx mdrun -v -gpu_id 1 -nt 14 -deffnm md_1kfl_d146n_dimer 2>&1 &
+
+					ANALYSIS
+# CENTERING & UNWRAP 💢️📬️
+
+gmx trjconv -s md_1kfl_d146n_dimer_250ns.tpr -f md_1kfl_d146n_dimer.xtc -o md_1kfl_d146n_dimer_dry.xtc -center -pbc cluster
+
+--> select 1 as ""protein"" for clustering
+--> select 1 as ""protein"" for centering
+--> select 1 as ""protein"" for output 
+
+gmx trjconv -s  md_1kfl_d146n_dimer_250ns.tpr -f md_1kfl_d146n_dimer_dry.xtc -o 1kfl_d146n_dimer_startframe.pdb -dump 0 
+
+--> select 1 as ""protein" 
+
+
+
+# ROTATIONAL &TRANSLATIONAL FIT # 🔃️🔄️ (OPTIONAL)
+
+gmx trjconv -s  md_1kfl_d146n_dimer.tpr -f md_1kfl_d146n_dimer_center.xtc -o md_1kfl_d146n_dimer_fit.xtc -fit rot+trans 
+
+--> select 4 for "backbone"
+--> select 0 for "system"
+
+
+
+
+#STARTING RUN FROM SPECIFIC FRAME
+	#EDITING TPR
+gmx trjconv -f md_1kfl_d146n_dimer.xtc -s md_1kfl_d146n_dimer.tpr -n index.ndx -o 1kfl_d146n_dimer_200ns.pdb -b 200000 -e 200000 
+
+gmx grompp -f md.mdp -c 1kfl_d146n_dimer_200ns.pdb -p topol_PLIG.top -t md_1kfl_d146n_dimer.cpt -o 1kfl_d146n_dimer_200ns.tpr -time 200000
+
+	#MDRUN
+nohup gmx mdrun -s 1kfl_d146n_dimer_200ns.tpr -v -gpu_id 1 -nt 14 -deffnm md_1kfl_d146n_dimer_200-250ns 2>&1 &
+
+
+#CONTINUE A SIMULATION:
+
+nohup gmx mdrun -s md_1kfl_d146n_dimer.tpr -cpi md_1kfl_d146n_dimer.cpt -v -gpu_id 1 -nt 8 -deffnm md_1kfl_d146n_dimer 2>&1 &
+
+
+#MDRUN EXTENDING:
+
+	#EDITING TPR
+gmx convert-tpr -s md_1kfl_d146n_dimer.tpr -until 100000 -o md_1kfl_d146n_dimer_100ns.tpr
+
+
+	#MDRUN
+nohup gmx mdrun -s md_1kfl_d146n_dimer_100ns.tpr -cpi md_1kfl_d146n_dimer.cpt -v -gpu_id 1 -nt 14 -deffnm md_1kfl_d146n_dimer_100ns 2>&1 &
+
+d
